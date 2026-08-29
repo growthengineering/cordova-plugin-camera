@@ -1,29 +1,25 @@
 /*
- *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- *
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
 */
 
-var argscheck = require('cordova/argscheck');
-var exec = require('cordova/exec');
-var Camera = require('./Camera');
-// XXX: commented out
-// CameraPopoverHandle = require('./CameraPopoverHandle');
+const argscheck = require('cordova/argscheck');
+const exec = require('cordova/exec');
+const Camera = require('./Camera');
 
 /**
  * @namespace navigator
@@ -32,10 +28,10 @@ var Camera = require('./Camera');
 /**
  * @exports camera
  */
-var cameraExport = {};
+const cameraExport = {};
 
 // Tack on the Camera Constants to the base camera plugin.
-for (var key in Camera) {
+for (const key in Camera) {
     cameraExport[key] = Camera[key];
 }
 
@@ -73,7 +69,6 @@ for (var key in Camera) {
  * @property {module:Camera.MediaType} [mediaType=PICTURE] - Set the type of media to select from.  Only works when `PictureSourceType` is `PHOTOLIBRARY` or `SAVEDPHOTOALBUM`.
  * @property {Boolean} [correctOrientation] - Rotate the image to correct for the orientation of the device during capture.
  * @property {Boolean} [saveToPhotoAlbum] - Save the image to the photo album on the device after capture.
- * @property {module:CameraPopoverOptions} [popoverOptions] - iOS-only options that specify popover location in iPad.
  * @property {module:Camera.Direction} [cameraDirection=BACK] - Choose the camera to use (front- or back-facing).
  */
 
@@ -114,14 +109,8 @@ for (var key in Camera) {
  * __Supported Platforms__
  *
  * - Android
- * - BlackBerry
  * - Browser
- * - Firefox
- * - FireOS
  * - iOS
- * - Windows
- * - WP8
- * - Ubuntu
  *
  * More examples [here](#camera-getPicture-examples). Quirks [here](#camera-getPicture-quirks).
  *
@@ -134,27 +123,40 @@ for (var key in Camera) {
 cameraExport.getPicture = function (successCallback, errorCallback, options) {
     argscheck.checkArgs('fFO', 'Camera.getPicture', arguments);
     options = options || {};
-    var getValue = argscheck.getValue;
+    const getValue = argscheck.getValue;
 
-    var quality = getValue(options.quality, 50);
-    var destinationType = getValue(options.destinationType, Camera.DestinationType.FILE_URI);
-    var sourceType = getValue(options.sourceType, Camera.PictureSourceType.CAMERA);
-    var targetWidth = getValue(options.targetWidth, -1);
-    var targetHeight = getValue(options.targetHeight, -1);
-    var encodingType = getValue(options.encodingType, Camera.EncodingType.JPEG);
-    var mediaType = getValue(options.mediaType, Camera.MediaType.PICTURE);
-    var allowEdit = !!options.allowEdit;
-    var correctOrientation = !!options.correctOrientation;
-    var saveToPhotoAlbum = !!options.saveToPhotoAlbum;
-    var popoverOptions = getValue(options.popoverOptions, null);
-    var cameraDirection = getValue(options.cameraDirection, Camera.Direction.BACK);
+    const quality = getValue(options.quality, 50);
+    const destinationType = getValue(options.destinationType, Camera.DestinationType.FILE_URI);
+    const sourceType = getValue(options.sourceType, Camera.PictureSourceType.CAMERA);
+    const targetWidth = getValue(options.targetWidth, -1);
+    const targetHeight = getValue(options.targetHeight, -1);
+    const encodingType = getValue(options.encodingType, Camera.EncodingType.JPEG);
+    const mediaType = getValue(options.mediaType, Camera.MediaType.PICTURE);
+    const allowEdit = !!options.allowEdit;
+    const correctOrientation = !!options.correctOrientation;
+    const saveToPhotoAlbum = !!options.saveToPhotoAlbum;
+    const cameraDirection = getValue(options.cameraDirection, Camera.Direction.BACK);
 
-    var args = [quality, destinationType, sourceType, targetWidth, targetHeight, encodingType,
-        mediaType, allowEdit, correctOrientation, saveToPhotoAlbum, popoverOptions, cameraDirection];
+    if (allowEdit) {
+        console.warn('allowEdit is deprecated. It does not work reliably on all platforms. Utilise a dedicated image editing library instead. allowEdit functionality is scheduled to be removed in a future release.');
+    }
+
+    const args = [quality, destinationType, sourceType, targetWidth, targetHeight, encodingType,
+        mediaType, allowEdit, correctOrientation, saveToPhotoAlbum, cameraDirection];
 
     exec(successCallback, errorCallback, 'Camera', 'takePicture', args);
-    // XXX: commented out
-    // return new CameraPopoverHandle();
+};
+
+/**
+ * Closes the active camera or media picker UI.
+ *
+ * __Supported Platforms__
+ *
+ * - Android
+ * - iOS
+ */
+cameraExport.stop = function (successCallback, errorCallback) {
+    exec(successCallback, errorCallback, 'Camera', 'stop', []);
 };
 
 /**

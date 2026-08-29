@@ -18,6 +18,14 @@ interface Navigator {
  */
 interface Camera {
     /**
+     * Closes the active camera or photo library picker UI.
+     * @param onSuccess Success callback, that called when stop succeeds.
+     * @param onError Error callback, that get an error message.
+     */
+    stop(
+        onSuccess: () => void,
+        onError: (message: string) => void): void;
+    /**
      * Removes intermediate photos taken by the camera from temporary storage.
      * @param onSuccess Success callback, that called when cleanup succeeds.
      * @param onError Error callback, that get an error message.
@@ -36,11 +44,6 @@ interface Camera {
         cameraSuccess: (data: string) => void,
         cameraError: (message: string) => void,
         cameraOptions?: CameraOptions): void;
-    // Next will work only on iOS
-    //getPicture(
-    //    cameraSuccess: (data: string) => void,
-    //    cameraError: (message: string) => void,
-    //    cameraOptions?: CameraOptions): CameraPopoverHandle;
 }
 
 interface CameraOptions {
@@ -51,8 +54,6 @@ interface CameraOptions {
      * Defined in navigator.camera.DestinationType. Default is FILE_URI.
      *      DATA_URL : 0,   Return image as base64-encoded string
      *      FILE_URI : 1,   Return image file URI
-     *      NATIVE_URI : 2  Return image native URI
-     *          (e.g., assets-library:// on iOS or content:// on Android)
      */
     destinationType?: number;
     /**
@@ -60,7 +61,7 @@ interface CameraOptions {
      * Defined in navigator.camera.PictureSourceType. Default is CAMERA.
      *      PHOTOLIBRARY : 0,
      *      CAMERA : 1,
-     *      SAVEDPHOTOALBUM : 2
+     *      SAVEDPHOTOALBUM : 2 // same as PHOTOLIBRARY, kept for backward compatibility
      */
     sourceType?: number;
     /** Allow simple editing of image before selection. */
@@ -102,46 +103,6 @@ interface CameraOptions {
      *      BACK: 1
      */
     cameraDirection?: number;
-    /** iOS-only options that specify popover location in iPad. Defined in CameraPopoverOptions. */
-    popoverOptions?: CameraPopoverOptions;
-}
-
-/**
- * A handle to the popover dialog created by navigator.camera.getPicture. Used on iOS only.
- */
-interface CameraPopoverHandle {
-    /**
-     * Set the position of the popover.
-     * @param popoverOptions the CameraPopoverOptions that specify the new position.
-     */
-    setPosition(popoverOptions: CameraPopoverOptions): void;
-}
-
-/**
- * iOS-only parameters that specify the anchor element location and arrow direction
- * of the popover when selecting images from an iPad's library or album.
- */
-interface CameraPopoverOptions {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    /**
-     * Direction the arrow on the popover should point. Defined in Camera.PopoverArrowDirection
-     * Matches iOS UIPopoverArrowDirection constants.
-     *      ARROW_UP : 1,        
-     *      ARROW_DOWN : 2,
-     *      ARROW_LEFT : 4,
-     *      ARROW_RIGHT : 8,
-     *      ARROW_ANY : 15
-     */
-    arrowDir : number;
-    popoverWidth: number;
-    popoverHeight: number;
-}
-
-declare class CameraPopoverOptions implements CameraPopoverOptions {
-    constructor(x?: number, y?: number, width?: number, height?: number, arrowDir?: number);
 }
 
 declare var Camera: {
@@ -149,7 +110,6 @@ declare var Camera: {
     DestinationType: {
         DATA_URL: number;
         FILE_URI: number;
-        NATIVE_URI: number
     }
     Direction: {
         BACK: number;
@@ -168,13 +128,5 @@ declare var Camera: {
         PHOTOLIBRARY: number;
         CAMERA: number;
         SAVEDPHOTOALBUM: number;
-    }
-    // Used only on iOS
-    PopoverArrowDirection: {
-        ARROW_UP: number;
-        ARROW_DOWN: number;
-        ARROW_LEFT: number;
-        ARROW_RIGHT: number;
-        ARROW_ANY: number;
     }
 };

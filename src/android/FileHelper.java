@@ -1,25 +1,26 @@
 /*
-       Licensed to the Apache Software Foundation (ASF) under one
-       or more contributor license agreements.  See the NOTICE file
-       distributed with this work for additional information
-       regarding copyright ownership.  The ASF licenses this file
-       to you under the Apache License, Version 2.0 (the
-       "License"); you may not use this file except in compliance
-       with the License.  You may obtain a copy of the License at
-         http://www.apache.org/licenses/LICENSE-2.0
-       Unless required by applicable law or agreed to in writing,
-       software distributed under the License is distributed on an
-       "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-       KIND, either express or implied.  See the License for the
-       specific language governing permissions and limitations
-       under the License.
- */
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+*/
 package org.apache.cordova.camera;
 
 import android.annotation.SuppressLint;
 import android.content.ContentUris;
 import android.content.Context;
-import android.content.CursorLoader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -29,8 +30,8 @@ import android.provider.MediaStore;
 import android.webkit.MimeTypeMap;
 
 import org.apache.cordova.CordovaInterface;
-import org.apache.cordova.LOG;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,29 +45,20 @@ public class FileHelper {
      * Returns the real path of the given URI string.
      * If the given URI string represents a content:// URI, the real path is retrieved from the media store.
      *
-     * @param uriString the URI string of the audio/image/video
+     * @param uri the URI of the audio/image/video
      * @param cordova the current application context
      * @return the full path to the file
      */
     @SuppressWarnings("deprecation")
     public static String getRealPath(Uri uri, CordovaInterface cordova) {
-        String realPath = null;
-
-        if (Build.VERSION.SDK_INT < 11)
-            realPath = FileHelper.getRealPathFromURI_BelowAPI11(cordova.getActivity(), uri);
-
-        // SDK >= 11
-        else
-            realPath = FileHelper.getRealPathFromURI_API11_And_Above(cordova.getActivity(), uri);
-
-        return realPath;
+        return FileHelper.getRealPathFromURI(cordova.getActivity(), uri);
     }
 
     /**
      * Returns the real path of the given URI.
      * If the given URI is a content:// URI, the real path is retrieved from the media store.
      *
-     * @param uri the URI of the audio/image/video
+     * @param uriString the URI string from which to obtain the input stream
      * @param cordova the current application context
      * @return the full path to the file
      */
@@ -75,11 +67,9 @@ public class FileHelper {
     }
 
     @SuppressLint("NewApi")
-    public static String getRealPathFromURI_API11_And_Above(final Context context, final Uri uri) {
-
-        final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
+    public static String getRealPathFromURI(final Context context, final Uri uri) {
         // DocumentProvider
-        if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
+        if (DocumentsContract.isDocumentUri(context, uri)) {
 
             // ExternalStorageProvider
             if (isExternalStorageDocument(uri)) {
@@ -143,6 +133,9 @@ public class FileHelper {
             if (isGooglePhotosUri(uri))
                 return uri.getLastPathSegment();
 
+            if (isFileProviderUri(context, uri))
+                return getFileProviderPath(context, uri);
+
             return getDataColumn(context, uri, null, null);
         }
         // File
@@ -151,22 +144,6 @@ public class FileHelper {
         }
 
         return null;
-    }
-
-    public static String getRealPathFromURI_BelowAPI11(Context context, Uri contentUri) {
-        String[] proj = { MediaStore.Images.Media.DATA };
-        String result = null;
-
-        try {
-            Cursor cursor = context.getContentResolver().query(contentUri, proj, null, null, null);
-            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-            cursor.moveToFirst();
-            result = cursor.getString(column_index);
-
-        } catch (Exception e) {
-            result = null;
-        }
-        return result;
     }
 
     /**
@@ -188,6 +165,7 @@ public class FileHelper {
             if (question > -1) {
                 uriString = uriString.substring(0, question);
             }
+
             if (uriString.startsWith("file:///android_asset/")) {
                 Uri uri = Uri.parse(uriString);
                 String relativePath = uri.getPath().substring(15);
@@ -217,6 +195,7 @@ public class FileHelper {
      * @return a path without the "file://" prefix
      */
     public static String stripFileProtocol(String uriString) {
+
         if (uriString.startsWith("file://")) {
             uriString = uriString.substring(7);
         }
@@ -236,7 +215,7 @@ public class FileHelper {
         }
         return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
     }
-    
+
     /**
      * Returns the mime type of the data specified by the given URI string.
      *
@@ -244,7 +223,7 @@ public class FileHelper {
      * @return the mime type of the specified data
      */
     public static String getMimeType(String uriString, CordovaInterface cordova) {
-        String mimeType = null;
+        String mimeType;
 
         Uri uri = Uri.parse(uriString);
         if (uriString.startsWith("content://")) {
@@ -327,4 +306,28 @@ public class FileHelper {
     public static boolean isGooglePhotosUri(Uri uri) {
         return "com.google.android.apps.photos.content".equals(uri.getAuthority());
     }
+
+    /**
+     * @param context The Application context
+     * @param uri The Uri is checked by functions
+     * @return Whether the Uri authority is FileProvider
+     */
+    public static boolean isFileProviderUri(final Context context, final Uri uri) {
+        final String packageName = context.getPackageName();
+        final String authority = new StringBuilder(packageName).append(".provider").toString();
+        return authority.equals(uri.getAuthority());
+    }
+
+    /**
+     * @param context The Application context
+     * @param uri The Uri is checked by functions
+     * @return File path or null if file is missing
+     */
+    public static String getFileProviderPath(final Context context, final Uri uri)
+    {
+        final File appDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        final File file = new File(appDir, uri.getLastPathSegment());
+        return file.exists() ? file.toString(): null;
+    }
+
 }
